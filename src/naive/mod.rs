@@ -67,3 +67,17 @@ impl<'a> SuffixTree<'a> {
         self.root.find_node(substring).is_some()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find() {
+        let tree = SuffixTree::new("banana");
+        println!("{}", tree);
+
+        assert!(tree.contains("ban"));
+        assert_eq!(tree.substring_count("ana"), 2);
+    }
+}

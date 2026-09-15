@@ -1,17 +1,17 @@
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Nodes<'a>(pub(crate) Vec<Node<'a>>);
+pub(super) struct Nodes<'a>(pub(super) Vec<Node<'a>>);
 
 #[derive(Debug, Clone)]
-pub(crate) struct Node<'a> {
-    pub(crate) suffix: &'a str,
+pub(super) struct Node<'a> {
+    pub(super) suffix: &'a str,
 
-    pub(crate) nodes: Nodes<'a>,
+    pub(super) nodes: Nodes<'a>,
 }
 
 impl<'a> Node<'a> {
-    pub(crate) fn count_leaves(&self) -> usize {
+    pub(super) fn count_leaves(&self) -> usize {
         if self.nodes.0.len() == 0 {
             1
         } else {
@@ -21,11 +21,11 @@ impl<'a> Node<'a> {
 }
 
 impl<'a> Nodes<'a> {
-    pub(crate) fn empty() -> Self {
+    pub(super) fn empty() -> Self {
         Self(Vec::new())
     }
 
-    pub(crate) fn add_suffix(&mut self, suffix: &'a str) {
+    pub(super) fn add_suffix(&mut self, suffix: &'a str) {
         let mut suffix_chars = suffix.chars();
         let Some(ssc) = suffix_chars.next() else {
             return self.0.push(Node {
@@ -83,7 +83,7 @@ impl<'a> Nodes<'a> {
         });
     }
 
-    pub(crate) fn substring_count(&self, substring: &str) -> usize {
+    pub(super) fn substring_count(&self, substring: &str) -> usize {
         if let Some(node) = self.find_node(substring) {
             node.count_leaves()
         } else {
@@ -91,7 +91,7 @@ impl<'a> Nodes<'a> {
         }
     }
 
-    pub(crate) fn find_node(&self, mut suffix: &str) -> Option<&Node<'a>> {
+    pub(super) fn find_node(&self, mut suffix: &str) -> Option<&Node<'a>> {
         let mut nodes = &self.0;
         loop {
             let Some(node) = nodes.iter().find(|node| {
