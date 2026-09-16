@@ -98,15 +98,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_contains() {
+    fn test_banana() {
         let tree = SuffixTree::new("banana");
+        assert_eq!(tree.to_string(), "($, a($, na($, na)), banana, na($, na))")
+    }
 
-        println!("{tree}");
+    #[test]
+    fn test_abcabxabcd() {
+        let tree = SuffixTree::new("abcabx");
+        assert_eq!(tree.to_string(), "($, ab(cabx, x), b(cabx, x), cabx, x)");
 
-        assert!(tree.contains("ana"));
-        assert!(tree.contains("an"));
-        assert!(tree.contains("ban"));
-        assert!(tree.contains("bana"));
-        assert!(tree.contains("banana"));
+        let tree = SuffixTree::new("abcabxa");
+        assert_eq!(
+            tree.to_string(),
+            "($, a($, b(cabxa, xa)), b(cabxa, xa), cabxa, xa)"
+        );
+
+        let tree = SuffixTree::new("abcabxab");
+        assert_eq!(
+            tree.to_string(),
+            "($, ab($, cabxab, xab), b($, cabxab, xab), cabxab, xab)"
+        );
+
+        let tree = SuffixTree::new("abcabxabd");
+        assert_eq!(
+            tree.to_string(),
+            "($, ab(cabxabd, d, xabd), b(cabxabd, d, xabd), cabxabd, d, xabd)"
+        );
+
+        let tree = SuffixTree::new("abcabxabc");
+        assert_eq!(
+            tree.to_string(),
+            "($, ab(c($, abxabc), xabc), b(c($, abxabc), xabc), c($, abxabc), xabc)"
+        );
+
+        let tree = SuffixTree::new("abcabxabcd");
+        assert_eq!(
+            tree.to_string(),
+            "($, ab(c(abxabcd, d), xabcd), b(c(abxabcd, d), xabcd), c(abxabcd, d), d, xabcd)"
+        );
     }
 }

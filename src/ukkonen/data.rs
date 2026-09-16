@@ -1,6 +1,14 @@
-use std::{collections::HashMap, num::NonZeroUsize};
+use std::num::NonZeroUsize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+// For ordered iteration
+#[cfg(test)]
+type Map<E, T> = std::collections::BTreeMap<E, T>;
+
+// For fast lookup
+#[cfg(not(test))]
+type Map<E, T> = std::collections::HashMap<E, T>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct NodeIndex(NonZeroUsize);
 
 impl NodeIndex {
@@ -29,30 +37,27 @@ impl NodeIndex {
 pub struct Node {
     pub start: usize,
     pub end: usize,
-    pub link: Option<NodeIndex>,
 }
 
 impl Node {
-    pub fn root() -> Self {
-        Self {
-            start: 0,
-            end: 0,
-            link: None,
-        }
+    pub(super) fn root() -> Self {
+        Self { start: 0, end: 0 }
     }
 }
 
 #[derive(Debug)]
 pub struct SuffixTreeData {
     pub(super) nodes: Vec<Node>,
-    pub(super) edges: HashMap<(NodeIndex, char), NodeIndex>,
+    pub(super) edges: Map<(NodeIndex, char), NodeIndex>,
+    pub(super) links: Map<NodeIndex, NodeIndex>,
 }
 
 impl SuffixTreeData {
     pub(super) fn new_with_root() -> Self {
         Self {
             nodes: vec![Node::root()],
-            edges: HashMap::new(),
+            edges: Default::default(),
+            links: Default::default(),
         }
     }
 
@@ -64,6 +69,12 @@ impl SuffixTreeData {
     }
     pub(super) fn insert_edge(&mut self, from: NodeIndex, edge: char, to: NodeIndex) {
         self.edges.insert((from, edge), to);
+    }
+    pub(super) fn insert_link(&mut self, from: NodeIndex, to: NodeIndex) {
+        if to == NodeIndex::root() {
+            return; // Already default link
+        }
+        self.links.insert(from, to);
     }
 
     pub fn get_edges(&self, node: NodeIndex) -> impl Iterator<Item = (char, NodeIndex)> {
@@ -85,6 +96,10 @@ impl SuffixTreeData {
         let edge = self.edges.get(&(node, edge)).cloned()?;
 
         self.nodes.get_mut(edge.get()).map(|node| (edge, node))
+    }
+
+    pub fn get_link(&self, node: NodeIndex) -> Option<NodeIndex> {
+        self.links.get(&node).copied()
     }
 
     pub fn get_node(&self, index: NodeIndex) -> &Node {

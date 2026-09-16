@@ -3,5 +3,30 @@
 version = 4
 
 [[package]]
+name = "almost"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9be59b025f96a77b3510a40874ceb752f0de98be9e02cab49398030983cc3e4d"
+
+[[package]]
+name = "chek"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecd7f985ff3a0859fbfb1f4e14886831f424a27eb916fadf036fdee01f53ef0a"
+dependencies = [
+ "almost",
+]
+
+[[package]]
+name = "debug_print"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f215f9b7224f49fb73256115331f677d868b34d18b65dbe4db392e6021eea90"
+
+[[package]]
 name = "suffix-tree"
 version = "0.1.0"
+dependencies = [
+ "chek",
+ "debug_print",
+]
