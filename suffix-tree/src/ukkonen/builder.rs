@@ -1,4 +1,5 @@
 use crate::ukkonen::data::{Node, NodeIndex, SuffixTreeData};
+
 use chek::debug_unreachable_unchecked;
 use debug_print::debug_println;
 
@@ -14,8 +15,8 @@ pub(super) struct SuffixTreeBuilder<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Active {
-    node: NodeIndex,
-    edge: Option<char>,
+    node: NodeIndex,    // no pai
+    edge: Option<char>, // caracter do pai para proximo
     len: usize,
 }
 
@@ -67,6 +68,7 @@ impl<'a> SuffixTreeBuilder<'a> {
                 this.active = this.find_next_active(&data);
             }
 
+            // Case A
             this.position += c.len_utf8();
         }
 

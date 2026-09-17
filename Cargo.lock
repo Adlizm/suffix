@@ -24,6 +24,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f215f9b7224f49fb73256115331f677d868b34d18b65dbe4db392e6021eea90"
 
 [[package]]
+name = "suffix-array"
+version = "0.1.0"
+dependencies = [
+ "chek",
+ "debug_print",
+]
+
+[[package]]
 name = "suffix-tree"
 version = "0.1.0"
 dependencies = [
