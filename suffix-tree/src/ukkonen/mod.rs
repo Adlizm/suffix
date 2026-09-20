@@ -1,21 +1,69 @@
 use crate::ukkonen::data::{NodeIndex, SuffixTreeData};
+use crate::word::{Symbol, Word};
 
 mod builder;
-mod data;
+pub mod data;
 
 #[derive(Debug)]
-pub struct SuffixTree<'a> {
-    data: SuffixTreeData,
-    word: &'a str,
+pub struct SuffixTree<'a, T: Word + ?Sized> {
+    data: SuffixTreeData<T::Alphabet>,
+    word: &'a T,
 }
 
-impl std::fmt::Display for SuffixTree<'_> {
+impl<'a, T: Word + ?Sized> SuffixTree<'a, T> {
+    pub fn new(word: &'a T) -> Self {
+        builder::SuffixTreeBuilder::build_tree(word)
+    }
+
+    pub fn data(&self) -> &SuffixTreeData<T::Alphabet> {
+        &self.data
+    }
+
+    pub fn word(&self) -> &T {
+        self.word
+    }
+
+    pub fn contains(&self, pattern: &T) -> bool {
+        let mut current = NodeIndex::root();
+        let mut pattern = pattern.symbols();
+
+        while let Some(c) = pattern.next() {
+            let len = self.word.size_of(c);
+
+            if let Some((node_index, node)) = self.data.get_edge(current, Symbol::Char(c)) {
+                let mut suffix = (node.start + len..node.end)
+                    .into_iter()
+                    .map(|i| self.word.get(i));
+
+                while let Some(Symbol::Char(s)) = suffix.next() {
+                    if let Some(p) = pattern.next() {
+                        if s != p {
+                            return false;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+
+                current = node_index;
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+pub type SuffixTreeStr<'a> = SuffixTree<'a, str>;
+
+impl std::fmt::Display for SuffixTreeStr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use std::fmt::Write;
 
         fn format_node(
             node_index: NodeIndex,
-            t: &SuffixTree<'_>,
+            t: &SuffixTreeStr<'_>,
             f: &mut std::fmt::Formatter<'_>,
         ) -> std::fmt::Result {
             if node_index != NodeIndex::root() {
@@ -28,10 +76,9 @@ impl std::fmt::Display for SuffixTree<'_> {
                 }
             }
 
-            let mut edges = t.data.get_edges(node_index).peekable();
-            if edges.peek().is_none() {
+            let Some(edges) = t.data.get_edges(node_index) else {
                 return Ok(());
-            }
+            };
 
             f.write_char('(')?;
             let mut first = true;
@@ -48,48 +95,6 @@ impl std::fmt::Display for SuffixTree<'_> {
         }
 
         format_node(NodeIndex::root(), self, f)
-    }
-}
-
-impl<'a> SuffixTree<'a> {
-    pub fn new(word: &'a str) -> Self {
-        builder::SuffixTreeBuilder::build_tree(word)
-    }
-
-    pub fn data(&self) -> &SuffixTreeData {
-        &self.data
-    }
-
-    pub fn word(&self) -> &str {
-        self.word
-    }
-
-    pub fn contains(&self, pattern: &str) -> bool {
-        let mut current = NodeIndex::root();
-        let mut pattern = pattern.chars();
-
-        while let Some(c) = pattern.next() {
-            if let Some(node_index) = self.data.edges.get(&(current, c)) {
-                let node = self.data.get_node(*node_index);
-
-                let mut suffix = self.word[node.start + c.len_utf8()..node.end].chars();
-                while let Some(s) = suffix.next() {
-                    if let Some(p) = pattern.next() {
-                        if s != p {
-                            return false;
-                        }
-                    } else {
-                        return true;
-                    }
-                }
-
-                current = *node_index;
-            } else {
-                return false;
-            }
-        }
-
-        true
     }
 }
 

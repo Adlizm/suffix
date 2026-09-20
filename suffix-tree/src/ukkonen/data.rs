@@ -1,23 +1,18 @@
+use std::collections::{BTreeMap, HashMap};
 use std::num::NonZeroUsize;
 
-// For ordered iteration
-#[cfg(test)]
-type Map<E, T> = std::collections::BTreeMap<E, T>;
-
-// For fast lookup
-#[cfg(not(test))]
-type Map<E, T> = std::collections::HashMap<E, T>;
+use crate::word::Symbol;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct NodeIndex(NonZeroUsize);
 
 impl NodeIndex {
-    pub(super) fn root() -> Self {
+    pub fn root() -> Self {
         Self::new(0)
     }
 
     /// Creates a new PositiveIsize if the value is <= isize::MAX.
-    pub const fn new(val: usize) -> Self {
+    pub(super) const fn new(val: usize) -> Self {
         if val <= isize::MAX as usize {
             // Safety: val + 1 is guaranteed to be >= 1, so it's never zero.
             // Also, because val <= isize::MAX, val + 1 will never overflow usize.
@@ -34,6 +29,7 @@ impl NodeIndex {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct Node {
     pub start: usize,
     pub end: usize,
@@ -46,13 +42,13 @@ impl Node {
 }
 
 #[derive(Debug)]
-pub struct SuffixTreeData {
+pub struct SuffixTreeData<T> {
     pub(super) nodes: Vec<Node>,
-    pub(super) edges: Map<(NodeIndex, char), NodeIndex>,
-    pub(super) links: Map<NodeIndex, NodeIndex>,
+    pub(super) edges: HashMap<NodeIndex, BTreeMap<Symbol<T>, NodeIndex>>,
+    pub(super) links: HashMap<NodeIndex, NodeIndex>,
 }
 
-impl SuffixTreeData {
+impl<T: Copy + Ord> SuffixTreeData<T> {
     pub(super) fn new_with_root() -> Self {
         Self {
             nodes: vec![Node::root()],
@@ -67,8 +63,8 @@ impl SuffixTreeData {
 
         NodeIndex::new(index)
     }
-    pub(super) fn insert_edge(&mut self, from: NodeIndex, edge: char, to: NodeIndex) {
-        self.edges.insert((from, edge), to);
+    pub(super) fn insert_edge(&mut self, from: NodeIndex, edge: Symbol<T>, to: NodeIndex) {
+        self.edges.entry(from).or_default().insert(edge, to);
     }
     pub(super) fn insert_link(&mut self, from: NodeIndex, to: NodeIndex) {
         if to == NodeIndex::root() {
@@ -77,25 +73,30 @@ impl SuffixTreeData {
         self.links.insert(from, to);
     }
 
-    pub fn get_edges(&self, node: NodeIndex) -> impl Iterator<Item = (char, NodeIndex)> {
-        self.edges.iter().filter_map(move |(key, index)| {
-            if key.0 == node {
-                Some((key.1, *index))
-            } else {
-                None
-            }
-        })
+    pub fn get_edges(
+        &self,
+        node: NodeIndex,
+    ) -> Option<impl Iterator<Item = (Symbol<T>, NodeIndex)>> {
+        if let Some(edges) = self.edges.get(&node) {
+            Some(edges.iter().map(|(key, index)| (*key, *index)))
+        } else {
+            None
+        }
     }
 
-    pub fn get_edge(&self, node: NodeIndex, edge: char) -> Option<(NodeIndex, &Node)> {
-        let edge = self.edges.get(&(node, edge)).cloned()?;
+    pub fn get_edge(&self, node: NodeIndex, edge: Symbol<T>) -> Option<(NodeIndex, &Node)> {
+        let edge = self.edges.get(&node)?.get(&edge)?;
 
-        Some((edge, self.nodes.get(edge.get())?))
+        self.nodes.get(edge.get()).map(|node| (*edge, node))
     }
-    pub fn get_edge_mut(&mut self, node: NodeIndex, edge: char) -> Option<(NodeIndex, &mut Node)> {
-        let edge = self.edges.get(&(node, edge)).cloned()?;
+    pub fn get_edge_mut(
+        &mut self,
+        node: NodeIndex,
+        edge: Symbol<T>,
+    ) -> Option<(NodeIndex, &mut Node)> {
+        let edge = self.edges.get(&node)?.get(&edge)?;
 
-        self.nodes.get_mut(edge.get()).map(|node| (edge, node))
+        self.nodes.get_mut(edge.get()).map(|node| (*edge, node))
     }
 
     pub fn get_link(&self, node: NodeIndex) -> Option<NodeIndex> {
