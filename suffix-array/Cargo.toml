@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 chek = "0.1"
-debug_print = "1.0"
+
+suffix-tree = { path = "../suffix-tree" }

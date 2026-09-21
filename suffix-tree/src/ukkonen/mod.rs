@@ -19,7 +19,7 @@ impl<'a, T: Word + ?Sized> SuffixTree<'a, T> {
         &self.data
     }
 
-    pub fn word(&self) -> &T {
+    pub fn word(&self) -> &'a T {
         self.word
     }
 
