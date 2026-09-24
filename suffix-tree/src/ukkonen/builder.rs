@@ -59,7 +59,7 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
                 // After adding with case B/E
                 // must proceed to find for the next active point
                 let remaining_char = word
-                    .try_get(this.position - this.remaining)
+                    .try_symbol_at(this.position - this.remaining)
                     .expect("Since remaining > 0, exist the other suffix to expand");
 
                 this.remaining -= word.size_of(remaining_char);
@@ -74,7 +74,7 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
     }
 
     fn add_next_suffix(&mut self, data: &mut SuffixTreeData<T::Alphabet>) -> bool {
-        let c = self.word.get(self.position);
+        let c = self.word.symbol_at(self.position);
 
         let Active { node, edge, len } = self.active;
 
@@ -85,7 +85,7 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
                 .get_edge(node, edge)
                 .expect("This represents a Active::Edge that still is not created");
 
-            let other = self.word.get(edgen.start + len);
+            let other = self.word.symbol_at(edgen.start + len);
 
             if other == c {
                 // Case D
@@ -151,7 +151,7 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
         let mut next_len = if self.remaining > self.active.len {
             self.active.len
         } else {
-            next_edge = self.word.try_get(suffix).map(Symbol::Char);
+            next_edge = self.word.try_symbol_at(suffix).map(Symbol::Char);
             self.remaining
         };
 
@@ -171,7 +171,7 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
 
                 next_len -= edge.end - edge.start;
                 next_node = edge_node;
-                next_edge = self.word.try_get(suffix).map(Symbol::Char);
+                next_edge = self.word.try_symbol_at(suffix).map(Symbol::Char);
             } else {
                 break;
             }
@@ -215,11 +215,11 @@ impl<'a, T: ?Sized + Word> SuffixTreeBuilder<'a, T> {
             }
         };
 
-        let left = self.word.get(edge.start + len);
-        let right = self.word.get(self.position);
+        let left = self.word.symbol_at(edge.start + len);
+        let right = self.word.symbol_at(self.position);
 
         debug_assert!(len < edge.end - edge.start);
-        debug_assert!(self.word.get(edge.start + len) == left);
+        debug_assert!(self.word.symbol_at(edge.start + len) == left);
 
         debug_assert!(left != right);
 

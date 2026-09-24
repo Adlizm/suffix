@@ -1,4 +1,7 @@
+use suffix_tree::{ukkonen::SuffixTree, word::Word};
+
 mod from_tree;
+mod skew;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SuffixArray<'a, T>
@@ -9,9 +12,24 @@ where
     data: Box<[usize]>,
 }
 
-impl<'a, T: ?Sized> SuffixArray<'a, T> {
-    pub fn new(_word: &'a str) -> Self {
-        todo!()
+impl<'a> SuffixArray<'a, str> {
+    pub fn from_ascii_str(word: &'a str) -> Self {
+        assert!(word.is_ascii());
+
+        let mut array = vec![0; word.len()];
+
+        skew::SuffixArrayBuilder::build_in_place(word.as_bytes(), &mut array);
+
+        Self {
+            word,
+            data: array.into_boxed_slice(),
+        }
+    }
+}
+
+impl<'a, T: Word + ?Sized> SuffixArray<'a, T> {
+    pub fn new(word: &'a T) -> Self {
+        SuffixTree::new(word).into()
     }
 
     pub fn word(&self) -> &T {
@@ -34,5 +52,13 @@ mod tests {
         let array: SuffixArray<_> = tree.into();
 
         assert_eq!(array.data(), &[6, 5, 3, 1, 0, 4, 2]);
+
+        let array = SuffixArray::from_ascii_str("processing");
+        assert_eq!(array.data(), &[6, 5, 3, 1, 0, 4, 2]);
+    }
+
+    #[test]
+    fn test_processing() {
+        let _ = SuffixArray::from_ascii_str("processing");
     }
 }

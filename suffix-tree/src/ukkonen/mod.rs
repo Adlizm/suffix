@@ -33,7 +33,7 @@ impl<'a, T: Word + ?Sized> SuffixTree<'a, T> {
             if let Some((node_index, node)) = self.data.get_edge(current, Symbol::Char(c)) {
                 let mut suffix = (node.start + len..node.end)
                     .into_iter()
-                    .map(|i| self.word.get(i));
+                    .map(|i| self.word.symbol_at(i));
 
                 while let Some(Symbol::Char(s)) = suffix.next() {
                     if let Some(p) = pattern.next() {
