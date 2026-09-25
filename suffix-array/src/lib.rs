@@ -16,9 +16,10 @@ impl<'a> SuffixArray<'a, str> {
     pub fn from_ascii_str(word: &'a str) -> Self {
         assert!(word.is_ascii());
 
-        let mut array = vec![0; word.len()];
+        let mut array = vec![0; word.len() + 1];
 
-        skew::SuffixArrayBuilder::build_in_place(word.as_bytes(), &mut array);
+        array[0] = word.len();
+        skew::SuffixArrayBuilder::build_in_place(word.as_bytes(), &mut array[1..]);
 
         Self {
             word,
@@ -52,13 +53,29 @@ mod tests {
         let array: SuffixArray<_> = tree.into();
 
         assert_eq!(array.data(), &[6, 5, 3, 1, 0, 4, 2]);
-
-        let array = SuffixArray::from_ascii_str("processing");
-        assert_eq!(array.data(), &[6, 5, 3, 1, 0, 4, 2]);
     }
 
     #[test]
     fn test_processing() {
-        let _ = SuffixArray::from_ascii_str("processing");
+        let array = SuffixArray::from_ascii_str("processing");
+
+        assert_eq!(array.data(), &[10, 3, 4, 9, 7, 8, 2, 0, 1, 6, 5]);
+    }
+
+    #[test]
+    fn test_equals() {
+        fn test_tree_and_array(word: &str) {
+            let a = SuffixArray::from(SuffixTree::new(word));
+            let b = SuffixArray::from_ascii_str(word);
+
+            assert_eq!(a.data(), b.data());
+        }
+
+        test_tree_and_array("banana");
+        test_tree_and_array("processing");
+        test_tree_and_array("mississippi");
+
+        test_tree_and_array("aaaaaa");
+        test_tree_and_array("abcabc");
     }
 }

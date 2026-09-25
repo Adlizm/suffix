@@ -7,11 +7,9 @@ pub struct SuffixArrayBuilder<'a, T> {
     word: &'a [T],
     sa: &'a mut [usize],
 
-    w12: Vec<usize>,
-    isa12: Vec<usize>,
-
-    w0: Vec<usize>,
-    isa0: Vec<usize>,
+    sa0: Vec<usize>,
+    ra12: Vec<usize>,
+    sa12: Vec<usize>,
 }
 
 impl<'a, T> SuffixArrayBuilder<'a, T>
@@ -19,63 +17,56 @@ where
     T: Ord + Copy,
 {
     pub fn build_in_place(word: &'a [T], sa: &'a mut [usize]) {
-        assert_eq!(sa.len(), word.len());
+        assert!(sa.len() >= word.len());
 
         let n2 = word.len() / 3;
         let n1 = (word.len() + 1) / 3;
+        let n0 = (word.len() + 2) / 3;
         let n12 = n1 + n2;
-
-        let n0 = word.len() - n12;
 
         let mut this = Self {
             word,
             sa,
 
-            w12: Vec::with_capacity(n12),
-            isa12: Vec::with_capacity(n12),
+            sa12: Vec::with_capacity(n12),
+            ra12: Vec::with_capacity(n12),
 
-            w0: Vec::with_capacity(n0),
-            isa0: Vec::with_capacity(n0),
+            sa0: Vec::with_capacity(n0),
         };
 
-        this.initialize();
+        this.create_array12();
 
-        this.create_inverse_array12();
-
-        this.create_inverse_array0();
+        this.create_array0();
 
         this.merge();
     }
 
-    fn initialize(&mut self) {
-        // Creating s12
-        let mut i = 0;
-        for (index, c) in self.word.symbols().enumerate() {
+    fn create_array12(&mut self) {
+        #[rustfmt::skip]
+        let Self { word, sa12, ra12, .. } = self;
+
+        for index in 0..word.len() {
             if index % 3 != 0 {
-                self.w12.push(i);
-                self.isa12.push(0);
+                sa12.push(index);
             }
-            i += self.word.size_of(c);
         }
-    }
 
-    fn create_inverse_array12(&mut self) {
-        let Self {
-            word, w12, isa12, ..
-        } = self;
-
-        let n12 = w12.len();
+        let n12 = sa12.len();
+        let n1 = (word.len() + 1) / 3;
 
         let mut count = Default::default();
-        radix_sort(&word[2..], w12, isa12, &mut count);
-        radix_sort(&word[1..], w12, isa12, &mut count);
-        radix_sort(&word[0..], w12, isa12, &mut count);
+        radix_sort(&word[2..], sa12, &mut count);
+        radix_sort(&word[1..], sa12, &mut count);
+        radix_sort(&word[0..], sa12, &mut count);
 
         drop(count);
 
+        // Safety ra12 is initialized in the next loop
+        unsafe { ra12.set_len(n12) };
+
         let mut letter = 0;
         let mut prevc = (None, None, None);
-        for &index in isa12.iter() {
+        for &index in sa12.iter() {
             let mut suffix = word.suffix(index).symbols();
             let nextc = (suffix.next(), suffix.next(), suffix.next());
             if nextc != prevc {
@@ -84,8 +75,8 @@ where
             }
 
             match index % 3 {
-                1 => w12[index / 3] = letter - 1,
-                2 => w12[index / 3 + n12 / 2] = letter - 1,
+                1 => ra12[index / 3] = letter - 1,
+                2 => ra12[index / 3 + n1] = letter - 1,
                 _ => debug_unreachable!(
                     "Since index is never divide by 3 when call this function with `word12`"
                 ),
@@ -93,85 +84,95 @@ where
         }
 
         if letter < n12 {
-            SuffixArrayBuilder::build_in_place(w12, isa12);
+            SuffixArrayBuilder::build_in_place(&ra12, sa12);
 
+            // rank array set for `ra12`
             for i in 0..n12 {
-                w12[isa12[i]] = i;
+                ra12[sa12[i]] = i;
             }
         } else {
+            // suffix array set for `sa12` (inverse of `ra12` that is a rank array)
             for i in 0..n12 {
-                isa12[w12[i]] = i;
+                sa12[ra12[i]] = i;
             }
         }
 
-        dbg!(&w12);
-        dbg!(&isa12);
+        for i in 0..n12 {
+            sa12[i] = if sa12[i] < n1 {
+                3 * sa12[i] + 1
+            } else {
+                2 + 3 * (sa12[i] - n1)
+            };
+        }
     }
-    fn create_inverse_array0(&mut self) {
-        #[rustfmt::skip]
-        let Self { word, w0, w12, isa0, isa12, .. } = self;
 
-        let mut j = 0;
-        for i in 0..w12.len() {
-            if isa12[i] < w0.len() {
-                w0[j] = 3 * isa12[i];
-                j += 1;
+    fn create_array0(&mut self) {
+        #[rustfmt::skip]
+        let Self { word, sa0, sa12, .. } = self;
+
+        if word.len() % 3 == 1 {
+            // last element is in s0
+            sa0.push(word.len() - 1);
+        }
+
+        for &mut index in sa12 {
+            if index % 3 == 1 {
+                sa0.push(index - 1);
             }
         }
-        radix_sort(word, w0, isa0, &mut Default::default());
+        radix_sort(word, sa0, &mut Default::default());
     }
 
     fn merge(&mut self) {
         #[rustfmt::skip]
-        let Self { word, sa, w0, w12, isa0, isa12 } = self;
+        let Self { word, sa, sa0, sa12, ra12 } = self;
 
-        assert_eq!(word.len(), w0.len() + w12.len());
+        assert_eq!(word.len(), sa0.len() + sa12.len());
 
         let mut index0 = 0;
         let mut index12 = 0;
 
-        fn get_i(index12: usize, w0: &[usize], s12: &[usize]) -> usize {
-            if s12[index12] < w0.len() {
-                // in s1
-                s12[index12] * 3 + 1
+        let n = word.len();
+        let n1 = (n + 1) / 3;
+
+        let rank = |index: usize| -> usize {
+            if index % 3 == 1 {
+                ra12.get(index / 3).copied().unwrap_or(0)
             } else {
-                // in s2
-                (s12[index12] - w0.len()) * 3 + 2
+                ra12.get(index / 3 + n1).copied().unwrap_or(0)
             }
-        }
+        };
+        let word = |index: usize| word.symbol_at(index);
 
-        for k in 0..word.len() {
-            let i = get_i(index12, w0, isa12);
-            let j = isa0[index0];
+        for k in 0..n {
+            let i = sa0[index0];
+            let j = sa12[index12];
 
-            dbg!(i, j);
-
-            let next_in0 = if isa12[index12] < w0.len() {
-                (word[i], w12[isa12[index12]]) < (word[j], w12[j / 3])
+            let next_in0 = if j % 3 == 1 {
+                (word(i), rank(i + 1)) < (word(j), rank(j + 1))
             } else {
-                (word[i], word[i + 1], w12[isa12[index12] - word.len() + 1])
-                    < (word[j], word[j + 1], w12[j / 3 + w0.len()])
+                (word(i), word(i + 1), rank(i + 2)) < (word(j), word(j + 1), rank(j + 2))
             };
 
-            if !next_in0 {
+            if next_in0 {
                 sa[k] = i;
-                index12 += 1;
+                index0 += 1;
 
-                if index12 == w12.len() {
-                    for k in k + 1..word.len() {
-                        sa[k] = isa0[index0];
-                        index0 += 1;
+                if index0 == sa0.len() {
+                    for k in k + 1..n {
+                        sa[k] = sa12[index12];
+                        index12 += 1;
                     }
                     break;
                 }
             } else {
                 sa[k] = j;
-                index0 += 1;
+                index12 += 1;
 
-                if index0 == w0.len() {
-                    for k in k + 1..word.len() {
-                        sa[k] = get_i(index12, w0, isa12);
-                        index12 += 1;
+                if index12 == sa12.len() {
+                    for k in k + 1..n {
+                        sa[k] = sa0[index0];
+                        index0 += 1;
                     }
                     break;
                 }
@@ -182,11 +183,11 @@ where
 
 type Count<T> = BTreeMap<Symbol<T>, Vec<usize>>;
 
-fn radix_sort<T>(word: &[T], s: &[usize], array: &mut [usize], count: &mut Count<T>)
+fn radix_sort<T>(word: &[T], s: &mut Vec<usize>, count: &mut Count<T>)
 where
     T: Ord + Copy,
 {
-    for &index in s {
+    for index in s.drain(..) {
         let key = word
             .get(index)
             .copied()
@@ -195,11 +196,9 @@ where
         count.entry(key).or_default().push(index);
     }
 
-    let mut index = 0;
     for (_, values) in count.iter_mut() {
         for value in values.drain(..) {
-            array[index] = value;
-            index += 1;
+            s.push(value);
         }
     }
 }
