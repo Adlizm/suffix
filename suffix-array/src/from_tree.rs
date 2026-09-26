@@ -12,7 +12,7 @@ where
     fn from(tree: SuffixTree<'a, T>) -> Self {
         let word = tree.word();
         let len = word.symbols().count() + 1;
-        let mut data = Vec::with_capacity(len);
+        let mut array = Vec::with_capacity(len);
 
         fn deep<'a, T>(
             node: NodeIndex,
@@ -33,13 +33,10 @@ where
             }
         }
 
-        deep(NodeIndex::root(), &mut data, &tree, word.size());
+        deep(NodeIndex::root(), &mut array, &tree, word.size());
 
-        assert!(data.len() == len);
+        let lcp = super::lcp::compute_lcp(word, &array);
 
-        SuffixArray {
-            word,
-            data: data.into_boxed_slice(),
-        }
+        SuffixArray { word, array, lcp }
     }
 }
