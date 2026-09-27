@@ -1,4 +1,4 @@
-pub trait Word {
+pub trait Word: Ord {
     type Alphabet: Copy + Ord;
 
     fn suffix(&self, start: usize) -> &Self;

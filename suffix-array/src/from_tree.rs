@@ -35,8 +35,6 @@ where
 
         deep(NodeIndex::root(), &mut array, &tree, word.size());
 
-        let lcp = super::lcp::compute_lcp(word, &array);
-
-        SuffixArray { word, array, lcp }
+        SuffixArray { word, array }
     }
 }
