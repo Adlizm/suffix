@@ -14,6 +14,17 @@ where
     array: Vec<usize>,
 }
 
+impl<'a, T: Copy + Ord> SuffixArray<'a, [T]> {
+    pub fn from_slice(word: &'a [T]) -> Self {
+        let mut array = vec![0; word.len() + 1];
+
+        array[0] = word.len();
+        skew::SuffixArrayBuilder::build_in_place(word, &mut array[1..]);
+
+        Self { word, array }
+    }
+}
+
 impl<'a> SuffixArray<'a, str> {
     pub fn from_ascii_str(word: &'a str) -> Self {
         assert!(word.is_ascii());

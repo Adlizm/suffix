@@ -77,9 +77,9 @@ where
             match index % 3 {
                 1 => ra12[index / 3] = letter - 1,
                 2 => ra12[index / 3 + n1] = letter - 1,
-                _ => debug_unreachable!(
-                    "Since index is never divide by 3 when call this function with `word12`"
-                ),
+                _ => {
+                    debug_unreachable!("Since index is never divide by 3 because of prev for loop")
+                }
             }
         }
 

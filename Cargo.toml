@@ -5,4 +5,5 @@ resolver = "2"
 members = [
     "suffix-tree",
     "suffix-array",
+    "bwt"
 ]

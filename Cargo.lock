@@ -9,6 +9,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be59b025f96a77b3510a40874ceb752f0de98be9e02cab49398030983cc3e4d"
 
 [[package]]
+name = "bwt"
+version = "0.1.0"
+dependencies = [
+ "chek",
+ "suffix-array",
+]
+
+[[package]]
 name = "chek"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
