@@ -26,6 +26,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rrr"
+version = "0.1.0"
+dependencies = [
+ "chek",
+]
+
+[[package]]
 name = "suffix-array"
 version = "0.1.0"
 dependencies = [
