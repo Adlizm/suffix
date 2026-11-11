@@ -6,5 +6,6 @@ members = [
     "suffix-tree",
     "suffix-array",
     "bwt",
+    "bitarray",
     "rrr",
 ]

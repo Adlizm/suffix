@@ -1,9 +1,6 @@
 pub struct PTables {}
 
 impl PTables {
-    pub fn get_raw_pointer(&self, index: usize, size: usize) -> usize {
-        todo!()
-    }
     pub fn get_bits(&self, ones: usize, pointer: usize) -> usize {
         todo!()
     }
@@ -16,7 +13,7 @@ impl PTables {
 pub struct PTablesBuilder {}
 
 impl PTablesBuilder {
-    pub fn register_bits(&mut self, ones: usize, bits: usize) -> usize {
+    pub fn register_bits(&mut self, ones: usize, bits: usize) -> (usize, usize) {
         todo!()
     }
 

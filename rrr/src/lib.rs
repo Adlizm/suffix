@@ -1,131 +1,204 @@
-mod prefix_sum;
-mod ptables;
-mod utils;
+mod big;
+pub use big::BigRRR;
 
-pub struct RRR {
-    fi: prefix_sum::PrefixSum, // w(i) = f(i+1) − f(i)
-    qi: prefix_sum::PrefixSum, // s(i) = q(i+1) − q(i)
-    pi: ptables::PTables,      // p(i) and table(w(i), p(i))
+mod tiny;
+pub use tiny::TinyRRR;
 
-    bits: usize,
-    bits_for_block: u8,
-}
-
-impl RRR {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        assert!(bytes.len() > 0 && bytes.len() <= (usize::MAX << 3));
-
-        let bits = bytes.len() * 8;
-
-        let bits_for_block = if bits.count_ones() == 1 {
-            bits.ilog2()
-        } else {
-            bits.ilog2() + 1
-        } as usize;
-        let blocks = bits.div_ceil(bits_for_block);
-
-        let w_len = if bits_for_block.count_ones() == 1 {
-            bits_for_block.ilog2()
-        } else {
-            bits_for_block.ilog2() + 1
-        } as usize;
-
-        let mut fi = prefix_sum::PrefixSum::builder(bits, blocks);
-        let mut qi = prefix_sum::PrefixSum::builder(1 << (bits_for_block / 2) + 1, blocks);
-        let mut pi = ptables::PTables::builder(w_len, blocks);
-
-        let mut index = 0;
-        loop {
-            if index >= bits {
-                break;
-            }
-
-            let block_x = utils::read_bits(bytes, index, bits_for_block as u8);
-
-            let wx = block_x.count_ones();
-            let sx = pi.register_bits(wx as usize, block_x);
-
-            fi.push(wx as usize);
-            qi.push(sx as usize);
-
-            index += bits_for_block;
-        }
-
-        Self {
-            fi: fi.build(),
-            qi: qi.build(),
-            pi: pi.build(),
-
-            bits,
-            bits_for_block: bits_for_block as u8,
-        }
-    }
-
-    pub fn access(&self, i: usize) -> bool {
-        if i == 0 {
-            self.rank(i) == 1
-        } else {
-            (self.rank(i) - self.rank(i - 1)) == 1
-        }
-    }
+pub trait BitRankSelect {
+    fn total_bits(&self) -> usize;
 
     /// rank(S, i) = fx + T[wx][px][i − xu],
-    pub fn rank(&self, i: usize) -> usize {
-        let x = i / self.bits_for_block as usize;
-        let xu = x * self.bits_for_block as usize;
+    fn rank_1(&self, i: usize) -> usize;
 
-        let fx = self.fi.get(x);
-        let wx = self.fi.get(x + 1) - fx;
-
-        let qx = self.qi.get(x);
-        let sx = self.qi.get(x + 1) - qx;
-
-        let px_pointer = self.pi.get_raw_pointer(qx, sx);
-        let px_value = self.pi.get_bits(wx, px_pointer);
-
-        let pi_rank = (px_value >> (self.bits_for_block as usize - (i - xu) + 1)).count_ones();
-        fx + pi_rank as usize
-    }
-    pub fn rank_0(&self, i: usize) -> usize {
-        (i + 1) - self.rank(i)
+    fn rank_0(&self, i: usize) -> usize {
+        i - self.rank_1(i)
     }
 
-    pub fn select(&self, i: usize) -> Option<usize> {
-        let n = self.bits;
+    fn access(&self, i: usize) -> bool;
 
-        if self.rank(n - 1) < i {
-            return None;
-        };
+    fn select_1(&self, i: usize) -> Option<usize>;
 
-        let mut left = 0;
-        let mut right = n - 1;
-        while right > 1 + left {
-            let mid = (right + left) / 2;
-            if self.rank(mid) >= i {
-                right = mid;
-            } else {
-                left = mid;
+    fn select_0(&self, i: usize) -> Option<usize>;
+}
+
+macro_rules! impl_bit_rank_select {
+    ($ty:ty, $bits:expr, $half:ty, $half_bits:expr) => {
+        impl BitRankSelect for $ty {
+            #[inline]
+            fn total_bits(&self) -> usize {
+                $bits
+            }
+
+            #[inline]
+            fn rank_1(&self, i: usize) -> usize {
+                match i {
+                    0 => 0,
+                    $bits.. => self.count_ones() as usize,
+                    _ => (self & ((1 << i) - 1)).count_ones() as usize,
+                }
+            }
+
+            #[inline]
+            fn rank_0(&self, i: usize) -> usize {
+                i.min($bits) - self.rank_1(i)
+            }
+
+            #[inline]
+            fn access(&self, i: usize) -> bool {
+                assert!(i < $bits);
+
+                (*self >> i) & 1 == 1
+            }
+
+            #[inline]
+            fn select_1(&self, i: usize) -> Option<usize> {
+                if i == 0 {
+                    return None;
+                }
+
+                let upper = (*self >> $half_bits) as $half;
+                let lower = *self as $half;
+
+                let upper_count = upper.count_ones() as usize;
+
+                if i <= upper_count {
+                    upper.select_1(i)
+                } else {
+                    lower.select_1(i - upper_count).map(|pos| pos + $half_bits)
+                }
+            }
+
+            #[inline]
+            fn select_0(&self, i: usize) -> Option<usize> {
+                if i == 0 {
+                    return None;
+                }
+
+                let upper = (*self >> $half_bits) as $half;
+                let lower = *self as $half;
+
+                let upper_count = upper.count_zeros() as usize;
+
+                if i <= upper_count {
+                    upper.select_0(i)
+                } else {
+                    lower.select_0(i - upper_count).map(|pos| pos + $half_bits)
+                }
             }
         }
-        Some(right)
+    };
+}
+
+impl_bit_rank_select!(u64, 64, u32, 32);
+impl_bit_rank_select!(u32, 32, u16, 16);
+impl_bit_rank_select!(u16, 16, u8, 8);
+
+impl BitRankSelect for usize {
+    #[inline]
+    fn total_bits(&self) -> usize {
+        usize::BITS as usize
     }
-    pub fn select_0(&self, i: usize) -> Option<usize> {
-        let n = self.bits;
 
-        if self.rank_0(n - 1) < i {
-            return None;
-        };
+    #[inline]
+    fn rank_1(&self, i: usize) -> usize {
+        const BITS: usize = usize::BITS as usize;
 
-        let mut left = 0;
-        let mut right = n - 1;
-        while right > 1 + left {
-            let mid = (right + left) / 2;
-            if self.rank_0(mid) >= i {
-                right = mid;
-            } else {
-                left = mid;
-            }
+        match i {
+            0 => 0,
+            BITS.. => self.count_ones() as usize,
+            _ => (self & ((1 << i as usize) - 1)).count_ones() as usize,
         }
-        Some(right)
+    }
+
+    #[inline]
+    fn rank_0(&self, i: usize) -> usize {
+        i.min(self.total_bits()) - self.rank_1(i)
+    }
+
+    #[inline]
+    fn access(&self, i: usize) -> bool {
+        assert!(i < 64);
+
+        (*self >> i) & 1 == 1
+    }
+
+    #[inline]
+    fn select_1(&self, i: usize) -> Option<usize> {
+        #[cfg(target_pointer_width = "64")]
+        return (*self as u64).select_1(i);
+
+        #[cfg(target_pointer_width = "32")]
+        return (*self as u32).select_1(i);
+
+        #[cfg(target_pointer_width = "16")]
+        return (*self as u16).select_1(i);
+    }
+
+    #[inline]
+    fn select_0(&self, i: usize) -> Option<usize> {
+        #[cfg(target_pointer_width = "64")]
+        return (*self as u64).select_0(i);
+
+        #[cfg(target_pointer_width = "32")]
+        return (*self as u32).select_0(i);
+
+        #[cfg(target_pointer_width = "16")]
+        return (*self as u16).select_0(i);
+    }
+}
+
+impl BitRankSelect for u8 {
+    #[inline]
+    fn total_bits(&self) -> usize {
+        8
+    }
+
+    #[inline]
+    fn rank_1(&self, i: usize) -> usize {
+        match i {
+            0 => 0,
+            8.. => self.count_ones() as usize,
+            _ => (self & ((1 << i) - 1)).count_ones() as usize,
+        }
+    }
+
+    #[inline]
+    fn rank_0(&self, i: usize) -> usize {
+        i.min(8) - self.rank_1(i)
+    }
+
+    #[inline]
+    fn access(&self, i: usize) -> bool {
+        assert!(i < 8);
+
+        (*self >> i) & 1 == 1
+    }
+
+    fn select_1(&self, i: usize) -> Option<usize> {
+        if i == 0 || i > self.count_ones() as usize {
+            return None;
+        }
+
+        let mut value = *self;
+
+        for _ in 1..i {
+            value &= value - 1;
+        }
+
+        Some(value.leading_zeros() as usize)
+    }
+
+    fn select_0(&self, i: usize) -> Option<usize> {
+        if i == 0 || i > self.count_ones() as usize {
+            return None;
+        }
+
+        let mut value = *self;
+
+        for _ in 1..i {
+            value &= value - 1;
+        }
+
+        Some(value.leading_zeros() as usize)
     }
 }

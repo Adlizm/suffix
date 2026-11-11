@@ -7,4 +7,5 @@ edition = "2024"
 workspace = true
 
 [dependencies]
+bitarray = { path = "../bitarray" }
 chek = "0.1"
