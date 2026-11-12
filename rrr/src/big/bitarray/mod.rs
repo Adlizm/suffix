@@ -1,5 +1,7 @@
 mod builder;
 
+pub use builder::BitArrayBuilder;
+
 pub struct BitArray {
     bytes: Box<[u8]>,
     len: usize,

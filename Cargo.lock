@@ -9,10 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be59b025f96a77b3510a40874ceb752f0de98be9e02cab49398030983cc3e4d"
 
 [[package]]
-name = "bitarray"
-version = "0.1.0"
-
-[[package]]
 name = "bwt"
 version = "0.1.0"
 dependencies = [
@@ -32,10 +28,6 @@ dependencies = [
 [[package]]
 name = "rrr"
 version = "0.1.0"
-dependencies = [
- "bitarray",
- "chek",
-]
 
 [[package]]
 name = "suffix-array"
@@ -43,6 +35,7 @@ version = "0.1.0"
 dependencies = [
  "chek",
  "suffix-tree",
+ "word",
 ]
 
 [[package]]
@@ -50,4 +43,17 @@ name = "suffix-tree"
 version = "0.1.0"
 dependencies = [
  "chek",
+ "word",
 ]
+
+[[package]]
+name = "wavelet-tree"
+version = "0.1.0"
+dependencies = [
+ "chek",
+ "rrr",
+]
+
+[[package]]
+name = "word"
+version = "0.1.0"

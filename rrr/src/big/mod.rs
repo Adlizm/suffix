@@ -1,3 +1,4 @@
+mod bitarray;
 use bitarray::BitArray;
 
 mod prefix_sum;

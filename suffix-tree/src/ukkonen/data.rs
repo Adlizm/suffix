@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::num::NonZeroUsize;
 
-use crate::word::Symbol;
+use word::Symbol;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct NodeIndex(NonZeroUsize);

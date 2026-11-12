@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use suffix_tree::word::Word;
+use word::Word;
 
 mod from_tree;
 mod skew;

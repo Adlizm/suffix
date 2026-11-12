@@ -9,4 +9,5 @@ workspace = true
 [dependencies]
 chek = "0.1"
 
+word = { path = "../word" }
 suffix-tree = { path = "../suffix-tree" }

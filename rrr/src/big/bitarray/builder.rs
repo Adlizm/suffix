@@ -16,15 +16,15 @@ impl BitArrayBuilder {
             self.bytes.resize((self.len + len).div_ceil(8), 0);
         }
 
-        crate::raw::write_bits(&mut self.bytes, self.len, len, bits);
+        super::raw::write_bits(&mut self.bytes, self.len, len, bits);
     }
 
-    pub fn build(mut self) -> crate::BitArray {
+    pub fn build(mut self) -> super::BitArray {
         self.bytes.truncate(self.len.div_ceil(8));
 
         let len = self.len;
         let bytes = self.bytes.into_boxed_slice();
 
-        crate::BitArray { bytes, len }
+        super::BitArray { bytes, len }
     }
 }

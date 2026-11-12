@@ -1,4 +1,4 @@
-use bitarray::raw::{read_bits, write_bits};
+use super::bitarray::raw::{read_bits, write_bits};
 
 pub struct PrefixSumBuilder {
     raw: Vec<u8>,

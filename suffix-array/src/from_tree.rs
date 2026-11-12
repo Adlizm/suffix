@@ -1,7 +1,5 @@
-use suffix_tree::{
-    ukkonen::{SuffixTree, data::NodeIndex},
-    word::Word,
-};
+use suffix_tree::ukkonen::{SuffixTree, data::NodeIndex};
+use word::Word;
 
 use crate::SuffixArray;
 

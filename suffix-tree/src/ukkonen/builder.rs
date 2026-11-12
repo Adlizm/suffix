@@ -1,7 +1,7 @@
 use chek::debug_unreachable_unchecked;
+use word::{Symbol, Word};
 
 use crate::ukkonen::data::{Node, NodeIndex, SuffixTreeData};
-use crate::word::{Symbol, Word};
 
 pub(super) struct SuffixTreeBuilder<'a, T: ?Sized + Word> {
     pub(super) word: &'a T,

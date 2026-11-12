@@ -1,5 +1,6 @@
+use word::{Symbol, Word};
+
 use crate::ukkonen::data::{NodeIndex, SuffixTreeData};
-use crate::word::{Symbol, Word};
 
 mod builder;
 pub mod data;

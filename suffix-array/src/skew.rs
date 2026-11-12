@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use chek::debug_unreachable;
-use suffix_tree::word::{Symbol, Word};
+use word::{Symbol, Word};
 
 pub struct SuffixArrayBuilder<'a, T> {
     word: &'a [T],

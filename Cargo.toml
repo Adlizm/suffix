@@ -3,9 +3,10 @@
 [workspace]
 resolver = "2"
 members = [
+    "word",
     "suffix-tree",
     "suffix-array",
     "bwt",
-    "bitarray",
     "rrr",
+    "wavelet-tree",
 ]
