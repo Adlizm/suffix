@@ -9,5 +9,3 @@ workspace = true
 [dependencies]
 rrr = { path = "../rrr" }
 word = { path = "../word" }
-
-chek = "0.1"

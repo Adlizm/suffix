@@ -7,7 +7,7 @@ use prefix_sum::PrefixSum;
 mod ptables;
 use ptables::PTables;
 
-use crate::BitRankSelect;
+use crate::{BitAccess, BitRank, BitSelect};
 
 pub struct BigRRR {
     fi: PrefixSum, // w(i) = f(i+1) − f(i)
@@ -74,13 +74,13 @@ impl BigRRR {
             bits_for_block: bits_for_block as u8,
         }
     }
-}
 
-impl BitRankSelect for BigRRR {
-    fn total_bits(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.bits
     }
+}
 
+impl BitRank for BigRRR {
     fn rank_1(&self, i: usize) -> usize {
         let x = i / self.bits_for_block as usize;
         let xu = x * self.bits_for_block as usize;
@@ -99,18 +99,22 @@ impl BitRankSelect for BigRRR {
     }
 
     fn rank_0(&self, i: usize) -> usize {
-        i.min(self.total_bits()) - self.rank_1(i)
+        i.min(self.len()) - self.rank_1(i)
     }
+}
 
+impl BitAccess for BigRRR {
     fn access(&self, i: usize) -> bool {
-        assert!(i < self.total_bits());
+        assert!(i < self.len());
 
         self.rank_1(i + 1) - self.rank_1(i) == 1
     }
+}
 
+impl BitSelect for BigRRR {
     fn select_1(&self, i: usize) -> Option<usize> {
         assert!(i != 0);
-        let n = self.total_bits();
+        let n = self.len();
 
         if self.rank_1(n - 1) < i {
             return None;
@@ -131,7 +135,7 @@ impl BitRankSelect for BigRRR {
 
     fn select_0(&self, i: usize) -> Option<usize> {
         assert!(i != 0);
-        let n = self.total_bits();
+        let n = self.len();
 
         if self.rank_0(n - 1) < i {
             return None;

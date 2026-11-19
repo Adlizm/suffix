@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
-use rrr::{BitRankSelect, TinyRRR};
+use rrr::{BitAccess, BitRank, BitSelect, TinyRRR};
 
 use word::UniformeWord;
 
@@ -96,6 +96,17 @@ where
             letters,
             len: word.size(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn height(&self) -> usize {
+        let unique = self.letters.len() as f64;
+        let height = unique.log2().ceil() as usize + 1;
+
+        height
     }
 
     pub fn access(&self, mut index: usize) -> T::Alphabet {

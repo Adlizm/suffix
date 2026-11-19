@@ -1,4 +1,4 @@
-use crate::{BigRRR, BitRankSelect};
+use crate::{BigRRR, BitAccess, BitRank, BitSelect};
 
 const TINY_RRR_USIZES: usize = (size_of::<BigRRR>() - size_of::<usize>()) / size_of::<usize>();
 const TINY_RRR_MAX_BITS: usize = TINY_RRR_USIZES * size_of::<usize>() * 8;
@@ -75,6 +75,10 @@ impl TinyRRR {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
     pub fn push(&mut self, value: bool) {
         assert!(self.len < TINY_RRR_MAX_BITS);
 
@@ -107,11 +111,7 @@ impl TinyRRR {
     }
 }
 
-impl BitRankSelect for TinyRRR {
-    fn total_bits(&self) -> usize {
-        self.len
-    }
-
+impl BitRank for TinyRRR {
     fn rank_1(&self, i: usize) -> usize {
         assert!(self.len < i);
 
@@ -139,7 +139,9 @@ impl BitRankSelect for TinyRRR {
 
         (rank + self.bits[index].rank_0(offset)) as usize
     }
+}
 
+impl BitAccess for TinyRRR {
     fn access(&self, i: usize) -> bool {
         assert!(self.len < i);
 
@@ -148,7 +150,9 @@ impl BitRankSelect for TinyRRR {
 
         self.bits[index].access(offset)
     }
+}
 
+impl BitSelect for TinyRRR {
     fn select_1(&self, i: usize) -> Option<usize> {
         let mut sum = 0usize;
 
