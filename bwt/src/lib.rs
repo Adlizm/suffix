@@ -1,66 +1,92 @@
-/// Compute the BWT of the input data.
-pub fn bwt_transform(data: &[u8]) -> (Vec<u8>, usize) {
-    if data.is_empty() {
-        return (vec![], 0);
-    }
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+    ops::AddAssign,
+};
 
-    let n = data.len();
-    let sa = suffix_array::SuffixArray::from_slice(data);
-    let saa = sa.array();
+use word::{Symbol, UniformeWord, Word};
 
-    // Find the index of the original string in the sorted rotation list
-    let mut orig_idx = 0;
-    for (i, &start) in saa.iter().enumerate() {
-        if start == 0 {
-            orig_idx = i;
-            break;
-        }
-    }
-
-    // The BWT is the last column of the sorted rotation matrix
-    let bwt: Vec<u8> = saa.iter().map(|&i| data[(i + n - 1) % n]).collect();
-
-    (bwt, orig_idx)
+pub struct Bwt<T: UniformeWord + ?Sized> {
+    bwt: Vec<Symbol<T::Alphabet>>,
 }
 
-/// Inverse BWT: recover original data from transformed data and original index.
-pub fn bwt_inverse(transformed: &[u8], orig_idx: usize) -> Vec<u8> {
-    if transformed.is_empty() {
-        return vec![];
+impl<T> Bwt<[T]>
+where
+    T: Copy + Ord + Hash,
+{
+    /// Compute the BWT of the input data.
+    pub fn from_slice(data: &[T]) -> Self {
+        if data.len() == 0 {
+            return Self {
+                bwt: vec![Symbol::Terminal],
+            };
+        }
+
+        let n = data.len();
+        let sa = suffix_array::SuffixArray::from_slice(data);
+        let saa = sa.array();
+
+        // The BWT is the last column of the sorted rotation matrix
+        let bwt: Vec<Symbol<T>> = saa
+            .iter()
+            .map(|&i| data.symbol_at((i + n - 1) % n))
+            .collect();
+
+        Self { bwt }
     }
 
-    let n = transformed.len();
+    pub fn revert(self) -> Vec<T> {
+        if self.bwt.is_empty() {
+            return vec![];
+        }
 
-    // Count occurrences of each byte
-    let mut count = vec![0usize; 256];
-    for &b in transformed {
-        count[b as usize] += 1;
+        let n = self.bwt.len();
+        let mut origin = 0usize;
+
+        // Count occurrences of each byte
+        let mut count: BTreeMap<_, usize> = BTreeMap::new();
+        for (index, &b) in self.bwt.iter().enumerate() {
+            count.entry(b).or_default().add_assign(1);
+            if b.is_terminal() {
+                origin = index;
+            }
+        }
+
+        // Cumulative counts (first occurrence of each byte in first column)
+        let mut first_occurrence: HashMap<_, usize> = HashMap::new();
+        let mut sum = 0;
+        for (&c, count) in &count {
+            first_occurrence.insert(c, sum);
+            sum += count;
+        }
+
+        // Build LF-mapping: for each position in last column, find position in first column
+        let mut lf = vec![0usize; n];
+        let mut occ_count: HashMap<_, usize> = HashMap::new();
+        for i in 0..n {
+            let b = self.bwt[i];
+            lf[i] = first_occurrence.get(&b).unwrap() + occ_count.get(&b).unwrap();
+
+            occ_count.entry(b).or_default().add_assign(1);
+        }
+
+        // Reconstruct by following LF-mapping from orig_idx
+        let mut result = Vec::<T>::with_capacity(n - 1);
+
+        let letters = result.spare_capacity_mut();
+        let mut idx = lf[origin];
+        for i in (0..n - 1).rev() {
+            let Symbol::Char(letter) = self.bwt[idx] else {
+                unreachable!("bwt has a uniqui Symbol::Terminal that aready skip")
+            };
+
+            letters[i].write(letter);
+            idx = lf[idx];
+        }
+
+        // Filled in the previous loop
+        unsafe { result.set_len(n - 1) };
+
+        result
     }
-
-    // Cumulative counts (first occurrence of each byte in first column)
-    let mut first_occurrence = vec![0usize; 256];
-    let mut sum = 0;
-    for i in 0..256 {
-        first_occurrence[i] = sum;
-        sum += count[i];
-    }
-
-    // Build LF-mapping: for each position in last column, find position in first column
-    let mut lf = vec![0usize; n];
-    let mut occ_count = vec![0usize; 256];
-    for i in 0..n {
-        let b = transformed[i] as usize;
-        lf[i] = first_occurrence[b] + occ_count[b];
-        occ_count[b] += 1;
-    }
-
-    // Reconstruct by following LF-mapping from orig_idx
-    let mut result = vec![0u8; n];
-    let mut idx = orig_idx;
-    for i in (0..n).rev() {
-        result[i] = transformed[idx];
-        idx = lf[idx];
-    }
-
-    result
 }

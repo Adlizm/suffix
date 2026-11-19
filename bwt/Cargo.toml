@@ -7,6 +7,5 @@ edition = "2024"
 workspace = true
 
 [dependencies]
-chek = "0.1"
-
+word = { path = "../word" }
 suffix-array = { path = "../suffix-array" }

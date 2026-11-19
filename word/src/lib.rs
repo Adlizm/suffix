@@ -51,6 +51,23 @@ pub enum Symbol<T> {
     Char(T),
 }
 
+impl<T> Symbol<T> {
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, Self::Terminal)
+    }
+
+    pub fn is_char(&self, c: T) -> bool
+    where
+        T: Eq,
+    {
+        if let Self::Char(this) = self {
+            this.eq(&c)
+        } else {
+            false
+        }
+    }
+}
+
 impl<T: std::fmt::Display> std::fmt::Display for Symbol<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
