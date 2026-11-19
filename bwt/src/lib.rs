@@ -1,30 +1,30 @@
 use std::{
     collections::{BTreeMap, HashMap},
     hash::Hash,
-    ops::AddAssign,
+    ops::{AddAssign, Deref},
 };
 
-use word::{Symbol, UniformeWord, Word};
+use word::{Symbol, Word};
 
-pub struct Bwt<T: UniformeWord + ?Sized> {
-    bwt: Vec<Symbol<T::Alphabet>>,
+pub struct Bwt<T> {
+    bwt: Vec<Symbol<T>>,
 }
 
-impl<T> Bwt<[T]>
-where
-    T: Copy + Ord + Hash,
-{
-    /// Compute the BWT of the input data.
-    pub fn from_slice(data: &[T]) -> Self {
+impl<T> Bwt<T> {
+    pub fn from_slice(data: &[T]) -> Self
+    where
+        T: Copy + Ord,
+    {
         if data.len() == 0 {
             return Self {
                 bwt: vec![Symbol::Terminal],
             };
         }
 
-        let n = data.len();
         let sa = suffix_array::SuffixArray::from_slice(data);
         let saa = sa.array();
+
+        let n = data.len();
 
         // The BWT is the last column of the sorted rotation matrix
         let bwt: Vec<Symbol<T>> = saa
@@ -35,9 +35,17 @@ where
         Self { bwt }
     }
 
-    pub fn revert(self) -> Vec<T> {
-        if self.bwt.is_empty() {
-            return vec![];
+    pub fn into_inner(self) -> Vec<Symbol<T>> {
+        self.bwt
+    }
+
+    pub fn revert<S>(self) -> S
+    where
+        T: Copy + Ord + Hash,
+        S: FromIterator<T>,
+    {
+        if self.bwt.len() == 1 {
+            return S::from_iter(std::iter::empty());
         }
 
         let n = self.bwt.len();
@@ -87,6 +95,14 @@ where
         // Filled in the previous loop
         unsafe { result.set_len(n - 1) };
 
-        result
+        S::from_iter(result)
+    }
+}
+
+impl<T> Deref for Bwt<T> {
+    type Target = [Symbol<T>];
+
+    fn deref(&self) -> &Self::Target {
+        &self.bwt
     }
 }

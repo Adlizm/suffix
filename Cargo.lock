@@ -12,8 +12,8 @@ checksum = "9be59b025f96a77b3510a40874ceb752f0de98be9e02cab49398030983cc3e4d"
 name = "bwt"
 version = "0.1.0"
 dependencies = [
- "chek",
  "suffix-array",
+ "word",
 ]
 
 [[package]]
@@ -23,6 +23,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecd7f985ff3a0859fbfb1f4e14886831f424a27eb916fadf036fdee01f53ef0a"
 dependencies = [
  "almost",
+]
+
+[[package]]
+name = "fm-index"
+version = "0.1.0"
+dependencies = [
+ "bwt",
+ "wavelet-tree",
+ "word",
 ]
 
 [[package]]
@@ -50,7 +59,6 @@ dependencies = [
 name = "wavelet-tree"
 version = "0.1.0"
 dependencies = [
- "chek",
  "rrr",
  "word",
 ]

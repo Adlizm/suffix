@@ -9,4 +9,5 @@ members = [
     "bwt",
     "rrr",
     "wavelet-tree",
+    "fm-index",
 ]

@@ -15,18 +15,21 @@ pub struct LetterData {
     mask: usize,
 }
 
-pub struct WaveletTree<T: UniformeWord> {
-    nodes: Vec<Node<T::Alphabet>>,
-    letters: HashMap<T::Alphabet, LetterData>,
+pub struct WaveletTree<T> {
+    nodes: Vec<Node<T>>,
+    letters: HashMap<T, LetterData>,
     len: usize,
 }
 
-impl<T: UniformeWord> WaveletTree<T>
+impl<T> WaveletTree<T>
 where
-    T::Alphabet: Hash,
+    T: Copy + Ord + Hash,
 {
-    pub fn from(word: &T) -> Self {
-        let mut letters: HashMap<T::Alphabet, LetterData> = HashMap::new();
+    pub fn from<W>(word: &W) -> Self
+    where
+        W: ?Sized + UniformeWord<Alphabet = T>,
+    {
+        let mut letters: HashMap<T, LetterData> = HashMap::new();
         let mut uniques = 0;
         word.symbols().for_each(|c| {
             letters
@@ -109,7 +112,7 @@ where
         height
     }
 
-    pub fn access(&self, mut index: usize) -> T::Alphabet {
+    pub fn access(&self, mut index: usize) -> T {
         assert!(index < self.len);
 
         let mut mask = 1usize;
@@ -135,7 +138,7 @@ where
         }
     }
 
-    pub fn select(&self, letter: T::Alphabet, mut ith: usize) -> Option<usize> {
+    pub fn select(&self, letter: T, mut ith: usize) -> Option<usize> {
         let (mut mask, deep) = if let Some(data) = self.letters.get(&letter) {
             if ith > data.count {
                 return None;
@@ -171,7 +174,7 @@ where
         Some(ith)
     }
 
-    pub fn rank(&self, letter: T::Alphabet, mut index: usize) -> usize {
+    pub fn rank(&self, letter: T, mut index: usize) -> usize {
         let (mask, deep, count) = if let Some(data) = self.letters.get(&letter) {
             (data.mask, data.deep, data.count)
         } else {
